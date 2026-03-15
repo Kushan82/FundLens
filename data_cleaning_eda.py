@@ -104,11 +104,25 @@ for col in cat_cols:
 print(f"\n  Remaining nulls: {df.isnull().sum().sum()}")
 print(f"  Rows after cleaning: {len(df):,}\n")
 
+# Force-coerce ALL expected financial columns to numeric.
+# This covers columns that were object-typed in the CSV (e.g. sd/std_dev)
+# and any that were renamed after num_cols was first captured.
+FINANCIAL_COLS = [
+    "min_sip", "min_lumpsum", "expense_ratio", "fund_size_cr", "fund_age_yr",
+    "sortino", "alpha", "std_dev", "beta", "sharpe", "rating",
+    "returns_1yr", "returns_3yr", "returns_5yr",
+]
+for col in FINANCIAL_COLS:
+    if col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+
+# Re-detect numeric cols after coercion and fill any new NaNs with median
+num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
 for col in num_cols:
-    df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+    df[col] = df[col].fillna(df[col].median())
 
 if "rating" in df.columns:
-    df["rating"] = pd.to_numeric(df["rating"], errors="coerce").fillna(0).clip(0, 5)
+    df["rating"] = df["rating"].clip(0, 5)
 
 print("=" * 60)
 print("  STEP 4 — FEATURE ENGINEERING")
@@ -276,5 +290,5 @@ print(f"  Final dataset: {df.shape[0]:,} rows × {df.shape[1]} columns")
 print(f"\n  New features added: composite_return, sharpe, rari,")
 print(f"  net_return, fund_size_category, return_consistency\n")
 print("=" * 60)
-print("  ✅  Script 1 complete. Run 02_ml_risk_scoring.py next.")
+print("  ✅  Script 1 complete. risk_scoring.py next.")
 print("=" * 60)
