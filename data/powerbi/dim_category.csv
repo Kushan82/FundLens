@@ -1,0 +1,6 @@
+category,fund_count,avg_1yr_return,avg_3yr_return,avg_5yr_return,avg_expense_ratio,avg_sharpe,avg_score,category_id
+Debt,282,5.548,7.055,7.001,0.358,0.921,38.203,1
+Equity,308,2.843,29.702,11.555,1.054,1.459,44.183,2
+Hybrid,116,4.075,15.272,8.639,0.775,1.312,40.0,3
+Other,80,2.891,20.764,10.349,0.457,1.093,41.607,4
+Solution Oriented,28,1.714,18.168,9.414,1.017,1.204,37.735,5
