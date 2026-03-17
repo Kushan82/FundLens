@@ -1,21 +1,21 @@
 amc_name,fund_count,avg_return,avg_score,total_aum_cr
-ICICI Prudential Mutual Fund,57,13.34,44.229,445257.0
-HDFC Mutual Fund,38,12.311,43.179,418426.0
-SBI Mutual Fund,48,12.931,42.607,397745.0
-Kotak Mahindra Mutual Fund,32,11.411,43.505,255952.0
-Aditya Birla Sun Life Mutual Fund,49,10.126,38.674,227218.0
-Axis Mutual Fund,35,8.995,39.327,221203.0
-Nippon India Mutual Fund,39,11.414,41.141,204320.0
-UTI Mutual Fund,37,9.954,38.31,153056.0
-DSP Mutual Fund,35,10.509,39.474,107188.0
-Mirae Asset Mutual Fund,18,11.354,42.912,107063.0
-Tata Mutual Fund,34,12.52,43.066,91078.0
-HSBC Mutual Fund,35,10.149,38.544,78307.4
-Franklin Templeton Mutual Fund,26,12.462,42.109,61666.0
-Canara Robeco Mutual Fund,18,10.828,41.154,57929.0
-Sundaram Mutual Fund,42,13.032,42.659,41991.0
-Invesco Mutual Fund,27,10.472,40.347,41738.0
-PPFAS Mutual Fund,3,14.587,48.263,32556.0
-Edelweiss Mutual Fund,20,11.436,41.419,31947.0
-Motilal Oswal Mutual Fund,16,12.582,40.548,24373.0
-Baroda BNP Paribas Mutual Fund,24,9.131,38.213,19782.0
+ICICI Prudential Mutual Fund,57,13.34,48.134,445257.0
+HDFC Mutual Fund,38,12.311,45.943,418426.0
+SBI Mutual Fund,48,12.931,44.926,397745.0
+Kotak Mahindra Mutual Fund,32,11.411,45.318,255952.0
+Aditya Birla Sun Life Mutual Fund,49,10.126,36.931,227218.0
+Axis Mutual Fund,35,8.995,35.925,221203.0
+Nippon India Mutual Fund,39,11.414,42.687,204320.0
+UTI Mutual Fund,37,9.954,36.467,153056.0
+DSP Mutual Fund,35,10.509,39.061,107188.0
+Mirae Asset Mutual Fund,18,11.354,45.531,107063.0
+Tata Mutual Fund,34,12.52,45.892,91078.0
+HSBC Mutual Fund,35,10.149,37.891,78307.4
+Franklin Templeton Mutual Fund,26,12.462,44.767,61666.0
+Canara Robeco Mutual Fund,18,10.828,40.521,57929.0
+Sundaram Mutual Fund,42,13.032,48.133,41991.0
+Invesco Mutual Fund,27,10.472,40.922,41738.0
+PPFAS Mutual Fund,3,14.587,56.403,32556.0
+Edelweiss Mutual Fund,20,11.436,44.008,31947.0
+Motilal Oswal Mutual Fund,16,12.582,43.904,24373.0
+Baroda BNP Paribas Mutual Fund,24,9.131,36.039,19782.0
