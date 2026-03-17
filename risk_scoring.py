@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
 
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
@@ -19,8 +19,10 @@ OUTPUT_PATH = "data/processed/mutual_funds_scored.csv"
 PLOTS_DIR   = "outputs/ml_plots"
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
-PALETTE   = ["#0D3349", "#1A6B8A", "#27C4A0", "#F5A623", "#E84855"]
-BG_COLOR  = "#F8F9FB"
+TOP_N = 50  
+
+PALETTE    = ["#0D3349", "#1A6B8A", "#27C4A0", "#F5A623", "#E84855"]
+BG_COLOR   = "#F8F9FB"
 GRID_COLOR = "#E2E8F0"
 plt.rcParams.update({
     "figure.facecolor": BG_COLOR, "axes.facecolor": BG_COLOR,
@@ -43,13 +45,11 @@ CANDIDATE_FEATURES = [
     "alpha", "expense_ratio", "rari", "net_return",
     "returns_1yr", "returns_3yr", "returns_5yr"
 ]
-
 CLUSTER_FEATURES = [f for f in CANDIDATE_FEATURES if f in df.columns]
 print(f"  Using features: {CLUSTER_FEATURES}\n")
 
 X = df[CLUSTER_FEATURES].copy()
 X.fillna(X.median(), inplace=True)
-
 for col in X.columns:
     lo, hi = X[col].quantile(0.01), X[col].quantile(0.99)
     X[col] = X[col].clip(lo, hi)
@@ -58,8 +58,8 @@ print("=" * 60)
 print("  STEP 3 — FINDING OPTIMAL NUMBER OF CLUSTERS")
 print("=" * 60)
 
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+scaler_std = StandardScaler()
+X_scaled = scaler_std.fit_transform(X)
 
 K_RANGE = range(2, 10)
 inertias, silhouettes = [], []
@@ -79,12 +79,10 @@ ax1.plot(K_RANGE, inertias, "o-", color=PALETTE[1], linewidth=2.5, markersize=8)
 ax1.axvline(best_k, color=PALETTE[4], linestyle="--", linewidth=1.8, label=f"Best k={best_k}")
 ax1.set_title("Elbow Method — Inertia", fontsize=13, fontweight="bold")
 ax1.set_xlabel("Number of Clusters (k)"); ax1.set_ylabel("Inertia"); ax1.legend()
-
 ax2.plot(K_RANGE, silhouettes, "s-", color=PALETTE[2], linewidth=2.5, markersize=8)
 ax2.axvline(best_k, color=PALETTE[4], linestyle="--", linewidth=1.8, label=f"Best k={best_k}")
 ax2.set_title("Silhouette Score by k", fontsize=13, fontweight="bold")
 ax2.set_xlabel("Number of Clusters (k)"); ax2.set_ylabel("Silhouette Score"); ax2.legend()
-
 plt.tight_layout()
 plt.savefig(f"{PLOTS_DIR}/01_elbow_silhouette.png", dpi=150, bbox_inches="tight", facecolor=BG_COLOR)
 plt.close()
@@ -134,61 +132,79 @@ for cid, label in cluster_label_map.items():
     print(f"    Cluster {cid}: {label}  ({n:,} funds)")
 
 print("\n" + "=" * 60)
-print("  STEP 6 — INVESTMENT ATTRACTIVENESS SCORE")
+print("  STEP 6 — INVESTMENT ATTRACTIVENESS SCORE (MinMaxScaler)")
 print("=" * 60)
 
-def minmax_norm(series):
-    mn, mx = series.min(), series.max()
-    if mx == mn:
-        return pd.Series(np.zeros(len(series)), index=series.index)
-    return (series - mn) / (mx - mn)
+mms = MinMaxScaler()
+
+SCORE_FEATURES = {
+    "returns_3yr":      {"weight": 0.30, "invert": False},
+    "composite_return": {"weight": 0.20, "invert": False},
+    "expense_ratio":    {"weight": 0.20, "invert": True},   
+    "sharpe":           {"weight": 0.15, "invert": False},
+    "alpha":            {"weight": 0.10, "invert": False},
+    "rari":             {"weight": 0.05, "invert": False},
+}
+
+SCORE_FEATURES = {k: v for k, v in SCORE_FEATURES.items() if k in df.columns}
+
+total_w = sum(v["weight"] for v in SCORE_FEATURES.values())
+for k in SCORE_FEATURES:
+    SCORE_FEATURES[k]["weight"] /= total_w
 
 score = pd.Series(np.zeros(len(df)), index=df.index)
-weights = {}
 
-if "composite_return" in df.columns:
-    score += minmax_norm(df["composite_return"]) * 0.30
-    weights["composite_return"] = 0.30
-if "sharpe" in df.columns:
-    score += minmax_norm(df["sharpe"]) * 0.25
-    weights["sharpe"] = 0.25
-if "expense_ratio" in df.columns:
-    score += minmax_norm(-df["expense_ratio"]) * 0.15  
-    weights["expense_ratio (inverted)"] = 0.15
-if "alpha" in df.columns:
-    score += minmax_norm(df["alpha"]) * 0.15
-    weights["alpha"] = 0.15
-if "rari" in df.columns:
-    score += minmax_norm(df["rari"]) * 0.10
-    weights["rari"] = 0.10
-if "return_consistency" in df.columns:
-    score += minmax_norm(df["return_consistency"]) * 0.05
-    weights["return_consistency"] = 0.05
+print("  Score components:")
+for feat, cfg in SCORE_FEATURES.items():
+    col = df[[feat]].copy().fillna(df[feat].median())
+    col_clipped = col.clip(col.quantile(0.01), col.quantile(0.99))
+    normalised = mms.fit_transform(col_clipped).flatten()
+    if cfg["invert"]:
+        normalised = 1 - normalised
+    contribution = pd.Series(normalised, index=df.index) * cfg["weight"]
+    score += contribution
+    direction = "↓ lower is better" if cfg["invert"] else "↑ higher is better"
+    print(f"    {feat:<25} weight={cfg['weight']*100:.0f}%   {direction}")
 
 df["investment_score"] = (score * 100).round(2)
 
-print("  Score weights used:")
-for k, v in weights.items():
-    print(f"    {k:<35} {v*100:.0f}%")
+if "returns_1yr" in df.columns:
+    df["positive_1yr"] = df["returns_1yr"] > 0
+    penalty_mask = df["returns_1yr"] <= 0
+    df.loc[penalty_mask, "investment_score"] *= 0.80   
+    df["investment_score"] = df["investment_score"].round(2)
+    penalised = penalty_mask.sum()
+    print(f"\n  ⚠  Applied 20% penalty to {penalised:,} funds with negative 1yr returns")
 
-print(f"\n  Score stats:")
-print(f"    Mean  : {df['investment_score'].mean():.1f}")
-print(f"    Median: {df['investment_score'].median():.1f}")
-print(f"    Min   : {df['investment_score'].min():.1f}")
-print(f"    Max   : {df['investment_score'].max():.1f}")
+print(f"\n  Score distribution:")
+print(f"    Mean   : {df['investment_score'].mean():.1f}")
+print(f"    Median : {df['investment_score'].median():.1f}")
+print(f"    Min    : {df['investment_score'].min():.1f}")
+print(f"    Max    : {df['investment_score'].max():.1f}")
 
 print("\n" + "=" * 60)
-print("  STEP 7 — TOP 30 FUNDS")
+print(f"  STEP 7 — TOP {TOP_N} FUNDS")
 print("=" * 60)
 
-top30_cols = [c for c in ["scheme_name", "amc_name", "category", "risk_cluster_label",
-                            "composite_return", "sharpe", "expense_ratio",
-                            "investment_score", "fund_size_cr"] if c in df.columns]
-top30 = df.nlargest(30, "investment_score")[top30_cols].reset_index(drop=True)
-top30.index += 1
-print(top30[["scheme_name", "risk_cluster_label", "composite_return", "investment_score"]
-            [:len(top30_cols)]].head(10).to_string())
-print("  ... (top 30 saved in output CSV)\n")
+top_n_cols = [c for c in [
+    "scheme_name", "amc_name", "category", "sub_category", "fund_type",
+    "risk_level", "risk_cluster_label", "rating", "fund_manager",
+    "returns_1yr", "returns_3yr", "returns_5yr", "composite_return",
+    "net_return", "expense_ratio", "sharpe", "alpha", "beta", "std_dev",
+    "rari", "fund_size_cr", "fund_size_category", "min_sip", "min_lumpsum",
+    "investment_score", "return_consistency", "cluster"
+] if c in df.columns]
+
+top_n = df.nlargest(TOP_N, "investment_score")[top_n_cols].reset_index(drop=True)
+top_n.index += 1
+top_n.insert(0, "rank", top_n.index)
+
+print(f"  Top 10 preview:")
+preview_cols = [c for c in ["scheme_name", "category", "risk_cluster_label",
+                              "returns_3yr", "expense_ratio", "investment_score"] if c in top_n.columns]
+print(top_n[preview_cols].head(10).to_string())
+print(f"\n  ... full Top {TOP_N} saved to output CSV\n")
+
 
 
 def save_fig(name):
@@ -220,10 +236,10 @@ fig, ax = plt.subplots(figsize=(9, 5))
 ax.hist(df["investment_score"], bins=50, color=PALETTE[2], alpha=0.85, edgecolor="white")
 ax.axvline(df["investment_score"].mean(), color=PALETTE[4], linewidth=2,
            linestyle="--", label=f"Mean: {df['investment_score'].mean():.1f}")
-thresh = top30["investment_score"].min()
+thresh = top_n["investment_score"].min()
 ax.axvline(thresh, color=PALETTE[3], linewidth=2,
-           linestyle="-.", label=f"Top 30 threshold: {thresh:.1f}")
-ax.set_title("Investment Attractiveness Score Distribution", fontsize=14, fontweight="bold")
+           linestyle="-.", label=f"Top {TOP_N} threshold: {thresh:.1f}")
+ax.set_title(f"Investment Attractiveness Score — Top {TOP_N} Threshold", fontsize=14, fontweight="bold")
 ax.set_xlabel("Score (0–100)"); ax.set_ylabel("Number of Funds")
 ax.legend()
 plt.tight_layout()
@@ -231,15 +247,15 @@ save_fig("03_investment_score_distribution")
 
 if "scheme_name" in df.columns:
     top20 = df.nlargest(20, "investment_score")[["scheme_name", "investment_score", "cluster"]].copy()
-    top20["short_name"] = top20["scheme_name"].str[:45]
-    fig, ax = plt.subplots(figsize=(12, 8))
+    top20["short_name"] = top20["scheme_name"].str[:48]
+    fig, ax = plt.subplots(figsize=(13, 8))
     colors = [PALETTE[int(c) % len(PALETTE)] for c in top20["cluster"]]
     bars = ax.barh(top20["short_name"][::-1], top20["investment_score"][::-1],
                    color=colors[::-1], edgecolor="white", height=0.7)
     for bar in bars:
         ax.text(bar.get_width() + 0.3, bar.get_y() + bar.get_height() / 2,
                 f"{bar.get_width():.1f}", va="center", fontsize=9, fontweight="bold")
-    ax.set_title("Top 20 Funds by Investment Attractiveness Score", fontsize=14, fontweight="bold")
+    ax.set_title(f"Top 20 Funds by Investment Attractiveness Score (FundLens)", fontsize=14, fontweight="bold")
     ax.set_xlabel("Investment Score (0–100)")
     ax.set_xlim(0, top20["investment_score"].max() + 8)
     plt.tight_layout()
@@ -263,7 +279,6 @@ if len(radar_features) >= 3:
         ax.plot(angles, values, "o-", linewidth=2, color=PALETTE[i % len(PALETTE)],
                 label=cluster_label_map.get(cid, f"Cluster {cid}"))
         ax.fill(angles, values, alpha=0.1, color=PALETTE[i % len(PALETTE)])
-
     ax.set_xticks(angles[:-1])
     ax.set_xticklabels([f.replace("_", "\n") for f in radar_features], fontsize=10)
     ax.set_title("Cluster Profile Radar", fontsize=14, fontweight="bold", pad=20)
@@ -271,14 +286,37 @@ if len(radar_features) >= 3:
     plt.tight_layout()
     save_fig("05_cluster_radar")
 
+if "std_dev" in df.columns and "composite_return" in df.columns:
+    fig, ax = plt.subplots(figsize=(10, 7))
+    is_top = df["investment_score"] >= thresh
+    ax.scatter(df.loc[~is_top, "std_dev"], df.loc[~is_top, "composite_return"],
+               color=PALETTE[1], alpha=0.3, s=20, label="Other funds", edgecolors="none")
+    ax.scatter(df.loc[is_top, "std_dev"], df.loc[is_top, "composite_return"],
+               color=PALETTE[3], alpha=0.85, s=60, label=f"Top {TOP_N} funds ★",
+               edgecolors="white", linewidths=0.5, zorder=5)
+    ax.set_title(f"Return vs Risk — Top {TOP_N} Highlighted", fontsize=14, fontweight="bold")
+    ax.set_xlabel("Standard Deviation (Risk)")
+    ax.set_ylabel("Composite Return (%)")
+    ax.legend(fontsize=10)
+    plt.tight_layout()
+    save_fig("06_return_vs_risk_top50")
+
 print("\n" + "=" * 60)
 print("  STEP 8 — SAVING SCORED DATASET")
 print("=" * 60)
 
+df["rank_by_score"]  = df["investment_score"].rank(ascending=False, method="min").astype(int)
+if "composite_return" in df.columns:
+    df["rank_by_return"] = df["composite_return"].rank(ascending=False, method="min").astype(int)
+if "sharpe" in df.columns:
+    df["rank_by_sharpe"] = df["sharpe"].rank(ascending=False, method="min").astype(int)
+df[f"is_top{TOP_N}"] = df["rank_by_score"] <= TOP_N
+
 df.to_csv(OUTPUT_PATH, index=False)
 print(f"  Saved → {OUTPUT_PATH}")
-print(f"  Columns added: cluster, risk_cluster_label, investment_score")
+print(f"  Columns added: cluster, risk_cluster_label, investment_score,")
+print(f"                 rank_by_score, rank_by_return, rank_by_sharpe, is_top{TOP_N}")
 print(f"  Total rows: {len(df):,}")
 print("\n" + "=" * 60)
-print("  ✅  Script 2 complete. powerbi_data_prep.py next.")
+print("  ✅  Script 2 complete. Run powerbi_data_prep.py next.")
 print("=" * 60)

@@ -1,0 +1,11 @@
+# 
+# Scoring logic (resume-ready description):
+#   Each metric is independently MinMax-normalised to [0, 1].
+#   Higher 3-year return → preferred (weight: 30%)
+#   Higher composite return → preferred (weight: 20%)
+#   Lower expense ratio → preferred (weight: 20%) — score on inverted value
+#   Higher Sharpe ratio → preferred (weight: 15%)
+#   Higher Alpha → preferred (weight: 10%)
+#   Higher RARI (return per unit risk) → preferred (weight: 5%)
+#
+# All weights sum to 1.00. Final score is scaled to 0–100.
