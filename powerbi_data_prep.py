@@ -37,6 +37,9 @@ if "sharpe" in fact_funds.columns:
 
 fact_funds["is_top30"] = fact_funds["rank_by_score"] <= 30
 
+# Merge is_top30 back onto df so downstream groupbys can use it cleanly
+df["is_top30"] = fact_funds["is_top30"].values
+
 fact_funds.to_csv(f"{PBI_DIR}/fact_funds.csv", index=False)
 print(f"  ✔  fact_funds.csv            → {len(fact_funds):,} rows, {len(fact_funds.columns)} cols")
 
@@ -68,9 +71,7 @@ if "amc_name" in df.columns:
             avg_expense_ratio = ("expense_ratio", "mean"),
             avg_score         = ("investment_score", "mean"),
             total_aum_cr      = ("fund_size_cr", "sum"),
-            top30_count       = ("is_top30" if "is_top30" in fact_funds.columns else "investment_score",
-                                  lambda x: (fact_funds.loc[x.index, "is_top30"].sum()
-                                             if "is_top30" in fact_funds.columns else 0))
+            top30_count       = ("is_top30", "sum"),
         )
         .round(3)
         .reset_index()
@@ -79,8 +80,7 @@ if "amc_name" in df.columns:
     dim_amc.to_csv(f"{PBI_DIR}/dim_amc.csv", index=False)
     print(f"  ✔  dim_amc.csv               → {len(dim_amc)} AMCs")
 
-top30 = fact_funds[fact_funds["is_top30"] == True].copy() if "is_top30" in fact_funds.columns \
-        else fact_funds.nlargest(30, "investment_score").copy()
+top30 = fact_funds[fact_funds["is_top30"] == True].copy()
 
 top30 = top30.sort_values("investment_score", ascending=False).reset_index(drop=True)
 top30.index += 1
