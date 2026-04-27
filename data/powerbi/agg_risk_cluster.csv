@@ -1,3 +1,18 @@
-risk_cluster_label,fund_count,avg_return,avg_std_dev,avg_sharpe,avg_expense_ratio,avg_score
-⭐ High Return / Low Risk,341,6.377,2.708,0.939,0.438,32.092
-📈 High Return / Moderate Risk,473,15.166,15.829,1.4,0.912,49.48
+risk_cluster_label,fund_count,avg_return,avg_std_dev,avg_sharpe,avg_expense_ratio,avg_score,avg_3yr_return,top50_count
+High Return / Mod-High Risk,10,20.278,21.042,1.67,1.372,59.39,32.89,3
+High Return / Low-Mod Risk,3,18.837,7.32,1.05,0.61,65.283,36.167,1
+High Return / Low Risk,1,17.665,0.39,-0.07,0.22,59.71,32.4,0
+High Return / Moderate Risk,1,17.665,2.47,0.39,0.94,51.7,32.4,0
+High Return / Very High Risk,260,17.582,16.819,1.534,0.948,56.87,31.565,46
+High Return / High Risk,2,16.128,10.31,1.855,0.175,63.38,23.45,0
+Moderate Return / High Risk,22,11.538,11.13,1.075,0.515,41.06,15.091,0
+Moderate Return / Very High Risk,152,11.457,15.442,1.168,0.974,36.102,21.53,0
+Moderate Return / Low-Mod Risk,27,10.207,9.485,1.248,0.288,44.357,14.748,0
+Moderate Return / Moderate Risk,26,9.205,6.779,1.364,0.639,39.15,12.046,0
+Moderate Return / Mod-High Risk,41,8.866,5.865,1.451,0.805,36.912,12.378,0
+Low Return / Mod-High Risk,14,6.311,5.171,0.91,0.692,28.529,7.643,0
+Low Return / High Risk,3,6.08,2.87,1.077,0.887,28.227,7.533,0
+Low Return / Moderate Risk,97,5.921,2.019,0.93,0.398,31.169,5.77,0
+Low Return / Low Risk,52,5.835,0.504,0.345,0.239,29.931,4.162,0
+Low Return / Low-Mod Risk,97,5.764,1.349,1.039,0.304,33.261,5.452,0
+Low Return / Very High Risk,6,5.467,13.82,0.802,1.22,20.575,10.867,0
